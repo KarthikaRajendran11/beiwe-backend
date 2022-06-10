@@ -12,7 +12,8 @@ from cronutils import run_tasks
 from services.celery_data_processing import create_file_processing_tasks
 from services.celery_forest import create_forest_celery_tasks
 from services.celery_push_notifications import create_push_notification_tasks
-from services.scripts_runner import create_task_ios_no_decryption_key_task, create_task_upload_logs
+from services.scripts_runner import (create_task_ios_no_decryption_key_task,
+    create_task_purge_invalid_time_data, create_task_upload_logs)
 
 
 FIVE_MINUTES = "five_minutes"
@@ -28,7 +29,7 @@ TASKS = {
         [create_file_processing_tasks, create_push_notification_tasks, create_forest_celery_tasks],
     HOURLY: [create_task_ios_no_decryption_key_task],
     FOUR_HOURLY: [],
-    DAILY: [create_task_upload_logs],
+    DAILY: [create_task_upload_logs, create_task_purge_invalid_time_data],
     WEEKLY: [],
     MONTHLY: [],
 }
@@ -48,9 +49,6 @@ if __name__ == "__main__":
         raise Exception("Not enough arguments to cron\n")
     elif argv[1] in VALID_ARGS:
         cron_type = argv[1]
-        if cron_type in KILL_TIMES:
-            run_tasks(TASKS[cron_type], TIME_LIMITS[cron_type], cron_type, KILL_TIMES[cron_type])
-        else:
-            run_tasks(TASKS[cron_type], TIME_LIMITS[cron_type], cron_type)
+        run_tasks(TASKS[cron_type], TIME_LIMITS[cron_type], cron_type, KILL_TIMES[cron_type])
     else:
         raise Exception("Invalid argument to cron\n")
