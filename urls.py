@@ -3,8 +3,8 @@ from django.conf.urls.static import static
 from django.urls import path as simplepath
 
 from api import (admin_api, copy_study_api, dashboard_api, data_access_api, mobile_api,
-    other_researcher_apis, participant_administration, push_notifications_api, study_api,
-    survey_api, tableau_api)
+    other_data_apis, participant_administration, push_notifications_api, study_api, survey_api,
+    tableau_api)
 from pages import (admin_pages, data_access_web_form, forest_pages, login_pages, mobile_pages,
     participant_pages, survey_designer, system_admin_pages)
 
@@ -142,11 +142,12 @@ path(
     push_notifications_api.resend_push_notification
 )
 
-
 # other researcher apis
-path("get-studies/v1", other_researcher_apis.get_studies)
-path("get-users/v1", other_researcher_apis.get_users_in_study)
-path("get-interventions/v1", other_researcher_apis.download_study_interventions)
+path("get-studies/v1", other_data_apis.get_studies)
+path("get-users/v1", other_data_apis.get_users_in_study)
+path("get-interventions/v1", other_data_apis.download_study_interventions)
+path("get-survey-history/v1", other_data_apis.download_study_survey_history)
+
 
 # data_access_api
 path("get-data/v1", data_access_api.get_data)
