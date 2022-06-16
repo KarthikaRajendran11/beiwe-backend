@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from multiprocessing.pool import ThreadPool
 from typing import Dict, Tuple
 
+import pytz
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.db.models import Sum
@@ -18,6 +19,7 @@ from constants.forest_constants import (FOREST_ERROR_LOCATION_KEY, ForestTaskSta
     NO_DATA_ERROR, TREE_COLUMN_NAMES_TO_SUMMARY_STATISTICS, YEAR_MONTH_DAY)
 from database.data_access_models import ChunkRegistry
 from database.tableau_api_models import ForestTask, SummaryStatisticDaily
+from database.user_models import Participant
 from libs.celery_control import forest_celery_app, safe_apply_async
 from libs.s3 import s3_retrieve
 from libs.sentry import make_error_sentry, SentryTypes
@@ -25,6 +27,10 @@ from libs.streaming_zip import determine_file_name
 
 from forest.jasmine.traj2stats import gps_stats_main
 from forest.willow.log_stats import log_stats_main
+
+
+MIN_TIME = datetime.time(0, 0, 0, 0)
+MAX_TIME = datetime.time(23, 59, 59, 999999)
 
 
 class NoSentryException(Exception): pass
@@ -65,9 +71,9 @@ def create_forest_celery_tasks():
 @forest_celery_app.task(queue=FOREST_QUEUE)
 def celery_run_forest(forest_task_id):
     with transaction.atomic():
-        task = ForestTask.objects.filter(id=forest_task_id).first()
+        task: ForestTask = ForestTask.objects.filter(id=forest_task_id).first()
         
-        participant = task.participant
+        participant: Participant = task.participant
         forest_tree = task.forest_tree
         
         # Check if there already is a running task for this participant and tree, handling
@@ -75,7 +81,10 @@ def celery_run_forest(forest_task_id):
         tasks = ForestTask.objects.select_for_update() \
                 .filter(participant=participant, forest_tree=forest_tree)
         
-        # handle overlap case (paranoid)
+        # FIXME: This is obviously unsafe in the more general case, but interleaved or duplicated tasks
+        # in the context of generating daily data will be fine because they just rerun the same
+        # idempotent analysis operations.
+        # Handle overlap case (paranoid)
         if tasks.filter(status=ForestTaskStatus.running).exists():
             enqueue_forest_task(args=[task.id])
             return
@@ -94,16 +103,21 @@ def celery_run_forest(forest_task_id):
         task.save(update_fields=["status", "forest_version", "process_start_time"])
     
     try:
-        # Save file size data
-        # The largest UTC offsets are -12 and +14
-        # FIXME: time bins are UTC, this is unnecessary and ... unfathomable?
-        min_datetime = datetime.combine(task.data_date_start, datetime.min.time()) - timedelta(hours=12)
-        max_datetime = datetime.combine(task.data_date_end, datetime.max.time()) + timedelta(hours=14)
-        log("min_datetime: ", min_datetime.isoformat())
-        log("max_datetime: ", max_datetime.isoformat())
+        # ChunkRegistry time_bin hourly chunks are in UTC, and only have hourly datapoints for all
+        # automated data, but manually entered data is more specific with minutes, seconds, etc.  We
+        # want our query for source data to use the study's timezone such that starts of days align
+        # to local midnight and end-of-day to 11:59.59pm. Weird fractional timezones will be
+        # noninclusive of their first hour of data between midnight and midnight + 1 hour, except
+        # for manually entered data streams which will instead align to the calendar date in the
+        # study timezone. Any such "missing" fraction of an hour is instead included at the end of the
+        # previous day.
+        starttime_midnight = datetime.combine(task.data_date_start, MIN_TIME, participant.study.timezone)
+        endtime_11_59pm = datetime.combine(task.data_date_end, MAX_TIME, participant.study.timezone)
+        log("starttime_midnight: ", starttime_midnight.isoformat())
+        log("endtime_11_59pm: ", endtime_11_59pm.isoformat())
         
         chunks = ChunkRegistry.objects.filter(
-            participant=participant, time_bin__gte=min_datetime, time_bin__lte=max_datetime
+            participant=participant, time_bin__gte=starttime_midnight, time_bin__lte=endtime_11_59pm
         )
         file_size = chunks.aggregate(Sum('file_size')).get('file_size__sum')
         if file_size is None:
@@ -148,7 +162,7 @@ def celery_run_forest(forest_task_id):
     finally:
         # This is entirely boilerplate for reporting cleanup operations cleanly to both sentry and
         # forest task infrastructure.
-        log("deleting files 1")
+        # log("deleting files 1")
         try:
             task.clean_up_files()
         except Exception:
@@ -255,7 +269,7 @@ def batch_create_file(singular_task_chunk: Tuple[ForestTask, Dict]):
 
 def enqueue_forest_task(**kwargs):
     updated_kwargs = {
-        "expires": (datetime.utcnow() + timedelta(minutes=5)).replace(second=30, microsecond=0),
+        "expires": (datetime.utcnow() + timedelta(minutes=5)).replace(second=30, microsecond=0, tzinfo=pytz.utc),
         "max_retries": 0,
         "retry": False,
         "task_publish_retry": False,
