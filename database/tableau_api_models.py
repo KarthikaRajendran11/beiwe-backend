@@ -215,6 +215,9 @@ class ForestTask(TimestampedModel):
 class SummaryStatisticDaily(TimestampedModel):
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE)
     date = models.DateField(db_index=True)
+    timezone = models.CharField(  # abbreviated time zone names are max 4 chars.
+        max_length=10, null=False, blank=False
+    )
     
     # Beiwe data quantities
     beiwe_accelerometer_bytes = models.IntegerField(null=True, blank=True)

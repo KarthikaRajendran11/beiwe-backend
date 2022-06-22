@@ -9,6 +9,7 @@ SERIALIZABLE_FIELD_NAMES = [
     "date",
     "participant_id",
     "study_id",
+    "timezone",
     
     # Data quantities
     "beiwe_accelerometer_bytes",

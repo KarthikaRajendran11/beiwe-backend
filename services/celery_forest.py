@@ -22,6 +22,7 @@ from libs.celery_control import forest_celery_app, safe_apply_async
 from libs.s3 import s3_retrieve
 from libs.sentry import make_error_sentry, SentryTypes
 from libs.streaming_zip import determine_file_name
+from libs.utils.date_utils import get_timezone_shortcode
 
 from forest.jasmine.traj2stats import gps_stats_main
 from forest.willow.log_stats import log_stats_main
@@ -194,7 +195,7 @@ def construct_summary_statistics(task: ForestTask):
         reader = csv.DictReader(f)
         has_data = False
         log("opened file...")
-        
+        tz_longname = task.participant.study.timezone_name
         for line in reader:
             has_data = True
             summary_date = date(
@@ -222,6 +223,7 @@ def construct_summary_statistics(task: ForestTask):
                 "date": summary_date,
                 "defaults": updates,
                 "participant": task.participant,
+                "timezone": get_timezone_shortcode(summary_date, tz_longname),
             }
             log("creating SummaryStatisticDaily:", data)
             SummaryStatisticDaily.objects.update_or_create(**data)

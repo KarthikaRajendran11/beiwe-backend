@@ -2,7 +2,8 @@ import subprocess
 from datetime import date, datetime
 from typing import List
 
-from django.db.models import AutoField, DateField, FloatField, ForeignKey, IntegerField, TextField
+from django.db.models import (AutoField, CharField, DateField, FloatField, ForeignKey, IntegerField,
+    TextField)
 from django.http.response import HttpResponse
 from django.utils import timezone
 
@@ -423,7 +424,7 @@ class ReferenceObjectMixin:
                 field_dict[field.name] = i
             elif isinstance(field, FloatField):
                 field_dict[field.name] = float(i)
-            elif isinstance(field, TextField):
+            elif isinstance(field, (TextField, CharField)):
                 field_dict[field.name] = str(i)
             else:
                 raise TypeError(f"encountered unhandled SummaryStatisticDaily type: {type(field)}")
