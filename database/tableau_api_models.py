@@ -113,8 +113,8 @@ class ForestTask(TimestampedModel):
             time_end = (self.data_date_end + datetime.timedelta(days=1)).strftime(string_format)
             time_start = self.data_date_start.strftime(string_format)
             other_params.update({
-                "start_date": time_end,
-                "end_date": time_start,
+                "end_date": time_end,
+                "start_date": time_start,
             })
         if self.forest_tree == ForestTree.jasmine:
             other_params["all_BV_set"] = self.get_all_bv_set_dict()
