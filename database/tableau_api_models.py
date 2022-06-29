@@ -90,8 +90,8 @@ class ForestTask(TimestampedModel):
     
     def params_dict(self, task=False):
         """ Return a dict of params to pass into the Forest function. The task flag is used to indicate whether this
-            is being called for use in the serializer (for purposes of creating the object) or for use in a task (in 
-            which case we can call additional functions as needed).
+            is being called for use in the serializer or for use in a task (in which case we can call additional 
+            functions as needed).
          """
         other_params = {
             "output_folder": self.data_output_path,
@@ -103,15 +103,19 @@ class ForestTask(TimestampedModel):
             # it exclusively
             time_end = datetime_to_list(self.data_date_end + datetime.timedelta(days=1))
             time_start = datetime_to_list(self.data_date_start)
+            other_params.update({
+                "time_end": time_end,
+                "time_start": time_start,
+            })
         else:
             # sycamore expects string in format "YYYY-MM-DD"
             string_format = "%Y-%m-%d"
             time_end = (self.data_date_end + datetime.timedelta(days=1)).strftime(string_format)
             time_start = self.data_date_start.strftime(string_format)
-        other_params.update({
-            "time_end": time_end,
-            "time_start": time_start,
-        })
+            other_params.update({
+                "start_date": time_end,
+                "end_date": time_start,
+            })
         if self.forest_tree == ForestTree.jasmine:
             other_params["all_BV_set"] = self.get_all_bv_set_dict()
             other_params["all_memory_dict"] = self.get_all_memory_dict_dict()
