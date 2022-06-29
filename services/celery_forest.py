@@ -25,6 +25,7 @@ from libs.streaming_zip import determine_file_name
 
 from forest.jasmine.traj2stats import gps_stats_main
 from forest.willow.log_stats import log_stats_main
+from forest.sycamore.base import get_submits_for_tableau
 
 
 class NoSentryException(Exception): pass
@@ -45,6 +46,7 @@ def log(*args, **kwargs):
 TREE_TO_FOREST_FUNCTION = {
     ForestTree.jasmine: gps_stats_main,
     ForestTree.willow: log_stats_main,
+    ForestTree.sycamore: get_submits_for_tableau,
 }
 
 
@@ -120,7 +122,7 @@ def celery_run_forest(forest_task_id):
         log("task.process_download_end_time:", task.process_download_end_time.isoformat())
         
         # Run Forest
-        params_dict = task.params_dict()
+        params_dict = task.params_dict(task=True)
         log("params_dict:", params_dict)
         task.params_dict_cache = json.dumps(params_dict, cls=DjangoJSONEncoder)
         task.save(update_fields=["params_dict_cache"])
@@ -186,6 +188,8 @@ def construct_summary_statistics(task: ForestTask):
         task_attribute = "jasmine_task"
     elif task.forest_tree == ForestTree.willow:
         task_attribute = "willow_task"
+    elif task.forest_tree == ForestTree.sycamore:
+        task_attribute = "sycamore_task"
     else:
         raise Exception(f"Unknown Forest Tree: {task.forest_tree}")
     log("tree:", task_attribute)

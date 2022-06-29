@@ -31,6 +31,7 @@ class ForestParam(TimestampedModel):
     
     jasmine_json_string = models.TextField()
     willow_json_string = models.TextField()
+    sycamore_json_string = models.TextField()
     
     def params_for_tree(self, tree_name):
         if tree_name not in ForestTree.values():
@@ -87,19 +88,36 @@ class ForestTask(TimestampedModel):
             f"Could not delete folder {self.data_base_path} for participant {self.external_id}, tried {i} times."
         )
     
-    def params_dict(self):
-        """ Return a dict of params to pass into the Forest function. """
+    def params_dict(self, task=False):
+        """ Return a dict of params to pass into the Forest function. The task flag is used to indicate whether this
+            is being called for use in the serializer (for purposes of creating the object) or for use in a task (in 
+            which case we can call additional functions as needed).
+         """
         other_params = {
             "output_folder": self.data_output_path,
             "study_folder": self.data_input_path,
+        }
+        if self.forest_tree not in [ForestTree.sycamore]:
+            # sycamore expects "time_end" and "time_start" as strings, while other trees expect them as lists
             # Need to add a day since this model tracks time end inclusively, but Forest expects
             # it exclusively
-            "time_end": datetime_to_list(self.data_date_end + datetime.timedelta(days=1)),
-            "time_start": datetime_to_list(self.data_date_start),
-        }
+            time_end = datetime_to_list(self.data_date_end + datetime.timedelta(days=1))
+            time_start = datetime_to_list(self.data_date_start)
+        else:
+            # sycamore expects string in format "YYYY-MM-DD"
+            string_format = "%Y-%m-%d"
+            time_end = (self.data_date_end + datetime.timedelta(days=1)).strftime(string_format)
+            time_start = self.data_date_start.strftime(string_format)
+        other_params.update({
+            "time_end": time_end,
+            "time_start": time_start,
+        })
         if self.forest_tree == ForestTree.jasmine:
             other_params["all_BV_set"] = self.get_all_bv_set_dict()
             other_params["all_memory_dict"] = self.get_all_memory_dict_dict()
+        if self.forest_tree == ForestTree.sycamore and task:
+            other_params['config_path'] = self.study_config_path
+            other_params['interventions_filepath'] = self.interventions_filepath
         return {**self.forest_param.params_for_tree(self.forest_tree), **other_params}
     
     def get_all_bv_set_dict(self):
@@ -169,7 +187,30 @@ class ForestTask(TimestampedModel):
                 pass  # it just needs to exist
             self._tmp_parent_folder_exists = True
         return os.path.join("/tmp/forest/", str(self.external_id), self.forest_tree)
+
+    @property
+    def interventions_filepath(self):
+        """ Generates a study interventions file for the participant's survey and returns the path to it """
+        from database.study_models import Study
+        study = Study.objects.get(id=self.participant.study_id)
+        from libs.intervention_export import intervention_survey_data
+        data = intervention_survey_data(study)
+        filename = study.name.replace(' ', '_') + "_interventions.json"
+        with open(os.path.join(self.data_base_path, filename), "w") as f:
+            f.write(json.dumps(data))
+        return os.path.join(self.data_base_path, filename)
     
+    @property
+    def study_config_path(self):
+        """ Generates a study config file for the participant's survey and returns the path to it """
+        from database.study_models import Study
+        from libs.copy_study import format_study
+        study = Study.objects.get(pk=self.participant.study_id)
+        filename = study.name.replace(' ', '_') + "_surveys_and_settings.json"
+        with open(os.path.join(self.data_base_path, filename), "w") as f:
+            f.write(format_study(study))
+        return os.path.join(self.data_base_path, filename)
+
     @property
     def data_input_path(self):
         """ Return the path to the input data folder, creating it if it doesn't already exist. """
@@ -281,8 +322,17 @@ class SummaryStatisticDaily(TimestampedModel):
     willow_missed_call_count = models.IntegerField(null=True, blank=True)
     willow_missed_callers = models.IntegerField(null=True, blank=True)
     
+    # Sycamore, Survey Frequency
+    sycamore_total_surveys = models.IntegerField(null=True, blank=True)
+    sycamore_total_completed_surveys = models.IntegerField(null=True, blank=True)
+    sycamore_total_opened_surveys = models.IntegerField(null=True, blank=True)
+    sycamore_average_time_to_submit = models.FloatField(null=True, blank=True)
+    sycamore_average_time_to_open = models.FloatField(null=True, blank=True)
+    sycamore_average_duration = models.FloatField(null=True, blank=True)
+
     jasmine_task = models.ForeignKey(ForestTask, blank=True, null=True, on_delete=models.PROTECT, related_name="jasmine_summary_statistics")
     willow_task = models.ForeignKey(ForestTask, blank=True, null=True, on_delete=models.PROTECT, related_name="willow_summary_statistics")
+    sycamore_task = models.ForeignKey(ForestTask, blank=True, null=True, on_delete=models.PROTECT, related_name="sycamore_summary_statistics")
     
     class Meta:
         constraints = [
