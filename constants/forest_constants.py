@@ -56,7 +56,7 @@ TREE_COLUMN_NAMES_TO_SUMMARY_STATISTICS = {
     "total_flight_time": "jasmine_total_flight_time",
     "av_pause_duration": "jasmine_av_pause_duration",
     "sd_pause_duration": "jasmine_sd_pause_duration",
-
+    
     # Willow, Texts
     "num_r": "willow_incoming_text_count",
     "num_r_tel": "willow_incoming_text_degree",
@@ -68,7 +68,7 @@ TREE_COLUMN_NAMES_TO_SUMMARY_STATISTICS = {
     "text_reciprocity_outgoing": "willow_outgoing_text_reciprocity",
     "num_mms_s": "willow_outgoing_MMS_count",
     "num_mms_r": "willow_incoming_MMS_count",
-
+    
     # willow, calls
     "num_in_call": "willow_incoming_call_count",
     "num_in_caller": "willow_incoming_call_degree",
@@ -78,7 +78,7 @@ TREE_COLUMN_NAMES_TO_SUMMARY_STATISTICS = {
     "total_mins_out_call": "willow_outgoing_call_duration",
     "num_mis_call": "willow_missed_call_count",
     "num_mis_caller": "willow_missed_callers",
-
+    
     # sycamore, survey frequency
     "num_surveys": "sycamore_total_surveys",
     "num_complete_surveys": "sycamore_total_completed_surveys",
@@ -86,7 +86,6 @@ TREE_COLUMN_NAMES_TO_SUMMARY_STATISTICS = {
     "avg_time_to_submit": "sycamore_average_time_to_submit",
     "avg_time_to_open": "sycamore_average_time_to_open",
     "avg_duration": "sycamore_average_duration",
-
 }
 
 

@@ -433,7 +433,7 @@ class ReferenceObjectMixin:
         field_dict = self.default_summary_statistic_daily_cheatsheet()
         params = {}
         for field in SummaryStatisticDaily._meta.fields:
-            if field.name in ["id", "created_on", "last_updated", "jasmine_task", "willow_task"]:
+            if field.name in ["id", "created_on", "last_updated", "jasmine_task", "willow_task", "sycamore_task"]:
                 continue
             elif field.name == "participant":
                 params[field.name] = participant or self.default_participant

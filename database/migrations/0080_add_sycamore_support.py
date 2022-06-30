@@ -72,5 +72,10 @@ class Migration(migrations.Migration):
             name='forest_tree',
             field=models.TextField(choices=[('jasmine', 'Jasmine'), ('willow', 'Willow'), ('sycamore', 'Sycamore')]),
         ),
-        migrations.RunPython(backfill_sycamore_param, migrations.RunPython.noop)
+        migrations.RunPython(backfill_sycamore_param, migrations.RunPython.noop),
+        migrations.AlterField(
+            model_name='forestparam',
+            name='sycamore_json_string',
+            field=models.TextField(),
+        ),
     ]
