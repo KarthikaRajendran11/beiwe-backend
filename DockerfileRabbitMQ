@@ -1,0 +1,21 @@
+FROM rabbitmq:3.8-alpine
+
+WORKDIR /usr/src/app
+
+ENV RABBITMQ_USER=beiwe
+
+ENV RABBITMQ_PASSWORD=guest
+
+ENV RABBITMQ_PID_FILE /var/lib/rabbitmq/mnesia/rabbitmq
+
+COPY ./rabbitmq_init.sh /usr/src/app
+
+RUN chmod +x /usr/src/app/rabbitmq_init.sh
+
+EXPOSE 15672
+
+EXPOSE 5672
+
+EXPOSE 25672
+
+CMD ["/usr/src/app/rabbitmq_init.sh"]

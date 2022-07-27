@@ -4,7 +4,7 @@ from django.urls import path as simplepath
 
 from api import (admin_api, copy_study_api, dashboard_api, data_access_api, mobile_api,
     other_researcher_apis, participant_administration, push_notifications_api, study_api,
-    survey_api, tableau_api)
+    survey_api, tableau_api, health_api)
 from pages import (admin_pages, data_access_web_form, forest_pages, login_pages, mobile_pages,
     participant_pages, survey_designer, system_admin_pages)
 
@@ -26,6 +26,9 @@ def path(route: str, view: callable, name: str = None, kwargs=None):
 
 
 urlpatterns = []
+
+# health status check
+path("_status", health_api.health_check_api)
 
 # session and login
 path("", login_pages.login_page)
