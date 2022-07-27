@@ -1,0 +1,47 @@
+version : '3'
+services:
+  beiwe:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      - celery
+      - rabbitmq
+    networks:
+      - beiwenw
+  rabbitmq:
+    hostname: rabbitmqhost.rabbitmqhost
+    build:
+      context: .
+      dockerfile: DockerfileRabbitMQ
+    environment:
+      RABBITMQ_USER: beiwe
+      RABBITMQ_PASSWORD: user
+    ports:
+      - 5672:5672
+      - 15672:15672
+    command: /usr/src/app/rabbitmq_init.sh
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    networks:
+      - beiwenw
+  celery:
+    build:
+      context: .
+      dockerfile: DockerfileCelery
+    # command: celery -A services.celery_push_notifications worker -Q push_notifications --loglevel=info -Ofair --hostname=%%h_notifications --concurrency=20 --pool=threads
+    networks:
+      - beiwenw
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+networks:
+  beiwenw:
+    driver: bridge
+

@@ -32,6 +32,7 @@ def get_surveys_and_schedules(now):
     query = ScheduledEvent.objects.filter(
         # core
         scheduled_time__lte=now, participant__fcm_tokens__isnull=False,
+        # participant__fcm_tokens__isnull=False,
         # safety
         participant__deleted=False, survey__deleted=False,
         # Shouldn't be necessary, placeholder containing correct lte count.
@@ -50,6 +51,7 @@ def get_surveys_and_schedules(now):
     schedules = defaultdict(list)
     patient_ids = {}
     for survey_obj_id, fcm, schedule_id, patient_id, unregistered in query:
+        print(patient_id, unregistered)
         if unregistered:
             continue
         surveys[fcm].append(survey_obj_id)
